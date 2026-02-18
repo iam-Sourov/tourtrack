@@ -3,16 +3,30 @@ import json
 import requests
 import datetime
 
+# Force UTF-8 encoding for stdout (Fixes degree symbol  issues on Windows)
+if sys.stdout.encoding != 'utf-8':
+    sys.stdout.reconfigure(encoding='utf-8')
+
 def generate_itinerary(destination, vibes, free_time):
-    # Detect available model
+    # Set the specific model requested by user
+    model_name = "llama3:latest"
+    
+    # Check if Ollama is running and model exists (optional but good for debugging)
     try:
         models_resp = requests.get('http://127.0.0.1:11434/api/tags')
         if models_resp.status_code == 200:
             models = models_resp.json().get('models', [])
-            if models:
-                model_name = models[0]['name']  # Use the first available model
-            else:
-                return json.dumps({"error": "No models found in Ollama"})
+            # Verify if llama3:latest is available
+            available_models = [m['name'] for m in models]
+            if model_name not in available_models:
+                # If specifically requested model isn't found, try to find any 'llama3' or fallback to first
+                fallback = next((m for m in available_models if 'llama3' in m), None)
+                if fallback:
+                    model_name = fallback
+                elif available_models:
+                    model_name = available_models[0]
+                else:
+                    return json.dumps({"error": "No models found in Ollama. Please run 'ollama pull llama3:latest'"})
         else:
             return json.dumps({"error": "Could not connect to Ollama"})
     except requests.exceptions.ConnectionError:

@@ -18,13 +18,13 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/tourTrack
 
 // Routes
 app.post('/api/itinerary', (req, res) => {
-    const { vibes, freeTime } = req.body;
+    const { destination, vibes, freeTime } = req.body;
 
     // Path to Python script
     const scriptPath = path.join(__dirname, '../ai_service/main.py');
 
     // Spawn Python process
-    const pythonProcess = spawn('python', [scriptPath, JSON.stringify({ vibes, freeTime })]);
+    const pythonProcess = spawn('python', [scriptPath, JSON.stringify({ destination, vibes, freeTime })]);
 
     let dataString = '';
 

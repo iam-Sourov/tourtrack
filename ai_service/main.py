@@ -3,43 +3,7 @@ import json
 import requests
 import datetime
 
-# Mock Weather Data (Local-first "own data")
-WEATHER_DATA = {
-    "Sylhet": {
-        "summer": "Hot and humid with heavy rainfall (Monsoon)",
-        "winter": "Mild and pleasant, perfect for tea gardens",
-        "spring": "Warm with occasional showers",
-        "autumn": "Cool and comfortable"
-    },
-    "Sitakunda": {
-        "summer": "Hot and humid, good for waterfalls but slippery trails",
-        "winter": "Cool and dry, ideal for trekking Chandranath Hill",
-        "spring": "Pleasant coastal breeze",
-        "autumn": "Moderate temperatures"
-    }
-}
-
-def get_weather_context(month):
-    season = "summer"
-    if month in [11, 12, 1, 2]:
-        season = "winter"
-    elif month in [3, 4]:
-        season = "spring"
-    elif month in [9, 10]:
-        season = "autumn"
-    
-    return {
-        "Sylhet": WEATHER_DATA["Sylhet"][season],
-        "Sitakunda": WEATHER_DATA["Sitakunda"][season]
-    }
-
-def generate_itinerary(vibes, free_time):
-    # Parse free_time to get month (simple logic)
-    # Assuming free_time is a string like "July 2024" or "Next weekend"
-    # For simplicity, default to current month if not parsable or just ask Ollama to infer
-    current_month = datetime.datetime.now().month
-    weather_context = get_weather_context(current_month)
-
+def generate_itinerary(destination, vibes, free_time):
     # Detect available model
     try:
         models_resp = requests.get('http://127.0.0.1:11434/api/tags')
@@ -56,25 +20,33 @@ def generate_itinerary(vibes, free_time):
 
     # Prepare prompt
     final_prompt = f"""
-    You are a travel expert for Bangladesh. Create a JSON ONLY response for a trip to Sylhet or Sitakunda.
-    User vibe: "{vibes}"
-    Free time: "{free_time}"
+    You are a professional travel expert.
+    User wants a trip to: "{destination}"
+    Vibe: "{vibes}"
+    Time: "{free_time}"
     
-    Weather context:
-    Sylhet: {weather_context['Sylhet']}
-    Sitakunda: {weather_context['Sitakunda']}
+    Task:
+    1.  Act as a LOCAL GUIDE specifically for **{destination}**.
+    2.  Check if {destination} is a known city/region. If it is in Bangladesh, DO NOT generalize to "Bangladesh". Focus ONLY on {destination}.
+    3.  Analyze weather for {destination} in {free_time}.
+    4.  Create a 3-day itinerary that contains REAL, SPECIFIC spots in {destination}.
+        *   Example: If destination is "Bandarban", mention "Nilagiri", "Nafakhum", "Golden Temple". Do NOT mention "Cox's Bazar" or "Sylhet".
+    5.  Local Tip: Must be specific to {destination}.
     
-    Output structured JSON:
+    IMPORTANT: The "destination" field in JSON must be exactly "{destination}".
+    
+    Output structured JSON ONLY:
     {{
-        "destination": "Name",
-        "weather_summary": "Short description",
+        "destination": "{destination}",
+        "weather_summary": "Specific weather for {destination} in {free_time}",
         "itinerary": [
-            {{"day": 1, "plan": "detailed plan"}},
-            {{"day": 2, "plan": "detailed plan"}},
-            {{"day": 3, "plan": "detailed plan"}}
+            {{"day": 1, "plan": "Specific places in {destination} to visit in morning, afternoon, evening."}},
+            {{"day": 2, "plan": "More specific spots in {destination}."}},
+            {{"day": 3, "plan": "Hidden gems in {destination}."}}
         ],
         "packing_list": ["item1", "item2"],
-        "vibe_match_score": 85
+        "local_tip": "Unique tip for {destination}",
+        "vibe_match_score": 100
     }}
     """
 
@@ -100,10 +72,11 @@ if __name__ == "__main__":
         # Read args from stdin or command line
         if len(sys.argv) > 1:
             input_data = json.loads(sys.argv[1])
+            destination = input_data.get('destination', 'Bangladesh')
             vibes = input_data.get('vibes', 'Relaxed')
             free_time = input_data.get('free_time', 'Anytime')
             
-            result = generate_itinerary(vibes, free_time)
+            result = generate_itinerary(destination, vibes, free_time)
             print(result)
         else:
             print(json.dumps({"error": "No input provided"}))

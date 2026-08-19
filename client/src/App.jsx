@@ -8,6 +8,30 @@ import {
 } from 'lucide-react';
 import './index.css';
 
+const HIGHLIGHT_COLORS = [
+  'text-rose-600',
+  'text-indigo-600',
+  'text-amber-600',
+  'text-emerald-600',
+  'text-sky-600',
+  'text-violet-600'
+];
+
+const renderHighlightedText = (text) => {
+  if (!text) return '';
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  let colorIndex = 0;
+  return parts.map((part, idx) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      const cleanText = part.slice(2, -2);
+      const colorClass = HIGHLIGHT_COLORS[colorIndex % HIGHLIGHT_COLORS.length];
+      colorIndex++;
+      return <strong key={idx} className={`${colorClass} font-bold`}>{cleanText}</strong>;
+    }
+    return part;
+  });
+};
+
 const App = () => {
   const [destination, setDestination] = useState('');
   const [vibes, setVibes] = useState('');
@@ -26,9 +50,9 @@ const App = () => {
     setLoading(true);
     setError('');
     setItinerary(null);
-
     try {
-      const response = await axios.post('http://localhost:5000/api/itinerary', { destination, vibes, freeTime });
+      const apiURL = import.meta.env.DEV ? 'http://localhost:5001/api/itinerary' : '/api/itinerary';
+      const response = await axios.post(apiURL, { destination, vibes, freeTime });
       let data = response.data;
       if (typeof data === 'string') {
         try {
@@ -223,7 +247,7 @@ const App = () => {
                       </div>
                       <div>
                         <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-1">Weather Forecast</h3>
-                        <p className="text-slate-700 leading-relaxed text-xl">{itinerary.weather_summary}</p>
+                        <p className="text-slate-700 leading-relaxed text-xl">{renderHighlightedText(itinerary.weather_summary)}</p>
                       </div>
                     </div>
 
@@ -237,7 +261,7 @@ const App = () => {
                           <div className="space-y-3">
                             <h4 className="text-xl font-bold text-slate-800">Day {day.day}</h4>
                             <p className="text-slate-600 leading-relaxed text-lg font-light">
-                              {day.plan}
+                              {renderHighlightedText(day.plan)}
                             </p>
                           </div>
                         </div>
@@ -256,7 +280,7 @@ const App = () => {
                         <Coffee className="w-5 h-5 text-amber-600" /> Local Secret
                       </h3>
                       <p className=" text-xl text-slate-700 leading-normal">
-                        "{itinerary.local_tip || "Embrace the journey!"}"
+                        "{renderHighlightedText(itinerary.local_tip || "Embrace the journey!")}"
                       </p>
                     </div>
 

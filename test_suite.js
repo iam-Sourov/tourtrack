@@ -23,10 +23,11 @@ async function testPythonScript() {
   console.log('\nTesting Python script standalone...');
   return new Promise((resolve) => {
     const scriptPath = path.join(__dirname, 'ai_service/main.py');
-    console.log(`Running: python ${scriptPath}`);
+    const pythonExecutable = path.join(__dirname, 'ai_service/venv/bin/python3');
+    console.log(`Running: ${pythonExecutable} ${scriptPath}`);
 
     // We use a timeout because it might hang if model is loading
-    const pythonProcess = spawn('python', [scriptPath, JSON.stringify({ vibes: 'test', free_time: 'test' })]);
+    const pythonProcess = spawn(pythonExecutable, [scriptPath, JSON.stringify({ vibes: 'test', free_time: 'test' })]);
 
     let stdout = '';
     let stderr = '';
@@ -69,7 +70,7 @@ async function testServerEndpoint() {
   try {
     // We use a small timeout because generation takes time, but we just want to see if it accepts the connection
     // However, we want to see if it returns successfully, so we need a long timeout.
-    const response = await axios.post('http://localhost:5000/api/itinerary', {
+    const response = await axios.post('http://localhost:5001/api/itinerary', {
       vibes: 'Relaxed',
       freeTime: 'Weekend'
     }, { timeout: 10000 }); // 10s timeout, enough to fail probably if model is slow, but we want to know if connection works.
@@ -84,7 +85,7 @@ async function testServerEndpoint() {
     }
   } catch (error) {
     if (error.code === 'ECONNREFUSED') {
-      console.error('❌ Server is NOT reachable on port 5000. Is "npm run dev" running?');
+      console.error('❌ Server is NOT reachable on port 5001. Is "npm run dev" running?');
     } else if (error.code === 'ECONNABORTED') {
       console.log('⚠️ Server connected but timed out (Model is likely loading/generating). This is actually GOOD sign for connectivity.');
       return true;

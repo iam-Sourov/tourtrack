@@ -7,7 +7,9 @@
     "start:server": "cd server && node index.js",
     "start:client": "cd client && npm run dev",
     "dev": "npx concurrently \"npm run start:server\" \"npm run start:client\"",
-    "install:all": "npm install && cd server && npm install && cd ../client && npm install && cd ../ai_service && pip install -r requirements.txt"
+    "build": "cd client && npm run build",
+    "start": "npm run build && npm run start:server",
+    "install:all": "npm install && cd server && npm install && cd ../client && npm install && cd ../ai_service && pip3 install -r requirements.txt"
   },
   "keywords": [],
   "author": "",

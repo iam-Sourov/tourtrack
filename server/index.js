@@ -1,20 +1,15 @@
 const express = require('express');
-const mongoose = require('mongoose');
 const cors = require('cors');
 const { spawn } = require('child_process');
 const path = require('path');
+const fs = require('fs');
 require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 app.use(cors());
 app.use(express.json());
-
-// MongoDB Connection
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/tourTrack')
-    .then(() => console.log('MongoDB connected'))
-    .catch(err => console.warn('MongoDB connection failed (Functionality Limited):', err.message));
 
 // Simple in-memory cache
 const itineraryCache = new Map();
@@ -31,11 +26,12 @@ app.post('/api/itinerary', (req, res) => {
         return res.json(itineraryCache.get(cacheKey));
     }
 
-    // Path to Python script
+    // Path to Python script and virtual environment python3
     const scriptPath = path.join(__dirname, '../ai_service/main.py');
+    const pythonExecutable = path.join(__dirname, '../ai_service/venv/bin/python3');
 
     // Spawn Python process with explicit UTF-8 encoding environment
-    const pythonProcess = spawn('python',
+    const pythonProcess = spawn(pythonExecutable,
         [scriptPath, JSON.stringify({ destination, vibes, freeTime })],
         { env: { ...process.env, PYTHONIOENCODING: 'utf-8' } }
     );
@@ -72,6 +68,16 @@ app.post('/api/itinerary', (req, res) => {
         }
     });
 });
+
+// Serve client static assets in production if they are built
+const distPath = path.join(__dirname, '../client/dist');
+if (fs.existsSync(distPath)) {
+    app.use(express.static(distPath));
+    app.get('*all', (req, res, next) => {
+        if (req.path.startsWith('/api/')) return next();
+        res.sendFile(path.join(distPath, 'index.html'));
+    });
+}
 
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
